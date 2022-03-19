@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# 2020 - 2022 Jan Provaznik (jan@provaznik.pro)
+#
+# Lists IOMMU isolation groups and the devices that belong there.
+
+shopt -s nullglob
+for g in `find /sys/kernel/iommu_groups/* -maxdepth 0 -type d | sort -V`; do
+    echo "IOMMU Group ${g##*/}:"
+    for d in $g/devices/*; do
+        echo -e "\t$(lspci -nns ${d##*/})"
+    done;
+done;

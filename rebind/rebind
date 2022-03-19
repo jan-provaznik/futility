@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# 2020 - 2022 Jan Provaznik (jan@provaznik.pro)
+#
+# Rebinds a PCIe device from its original driver to vfio-pci. Comes handy in
+# QEMU (KVM) initialization scripts.
+
+function rebind {
+  echo $1 \
+    > /sys/bus/pci/devices/$1/driver/unbind
+  echo 'vfio-pci' \
+    > /sys/bus/pci/devices/$1/driver_override
+  echo $1 \
+    > /sys/bus/pci/drivers_probe
+}
+
+# For example,
+#
+# rebind 0000:81:0e.0
+# rebind 0000:81:0e.1

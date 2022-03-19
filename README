@@ -1,0 +1,19 @@
+Resistance is futile.
+
+Utility: lsiommu
+
+  Lists IOMMU isolation groups and the devices that belong there.
+
+Utility: lssriov
+
+  Lists virtual functions (SR-IOV) of network devices and the IOMMU isolation
+  groups they belong to.
+
+Utility: lsusbpci
+
+  Lists USB devices along with their /sys/devices/pci... locations.
+
+Utility: rebind
+
+  Rebinds a PCIe device from its original driver to vfio-pci. 
+

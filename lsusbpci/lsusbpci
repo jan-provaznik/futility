@@ -1,0 +1,50 @@
+#!/bin/bash
+#
+# 2020 - 2022 Jan Provaznik (jan@provaznik.pro)
+#
+# This utility is similar to the standard usbutils/lsusb utility. Unlike the
+# original utility, lsusbpci shows the location of the USB device in relation
+# to the PCIe bus (/sys/devices).
+#
+# Its primary use was to determine device locations for configuration of
+# multiseat environment using systemd-logind and the related loginctl tool.
+
+set -e -u 
+
+for pathDevice in /sys/bus/usb/devices/*
+do
+  idVendorPath="${pathDevice}/idVendor"
+  idProductPath="${pathDevice}/idProduct"
+
+  if [[ -e "${idVendorPath}" && -e "${idProductPath}" ]]
+  then
+
+    # Vendor ID, Product ID
+
+    idVendor=$(cat "${idVendorPath}")
+    idProduct=$(cat "${idProductPath}")
+
+    # USB bus, USB device
+
+    usbBus=$(cat "${pathDevice}/busnum")
+    usbDev=$(cat "${pathDevice}/devnum")
+
+    # Vendor name, Product name
+
+    hwdbRecord=$(systemd-hwdb query usb:v${idVendor^^}p${idProduct^^})
+    hwdbVendor=$(echo "$hwdbRecord" | grep -s ID_VENDOR_FROM_DATABASE | cut -d= -f2)
+    hwdbProduct=$(echo "$hwdbRecord" | grep -s ID_MODEL_FROM_DATABASE | cut -d= -f2)
+
+    # Report
+
+    printf "Bus %03i Device %03i [%4s:%4s] %s (%s)" \
+      "${usbBus}" "${usbDev}" \
+      "${idVendor}" "${idProduct}" \
+      "${hwdbVendor}" "${hwdbProduct}"
+    echo
+
+    echo $(realpath "${pathDevice}")
+    echo
+  fi
+done
+

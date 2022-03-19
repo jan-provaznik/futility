@@ -1,0 +1,92 @@
+#!/bin/env python3
+#
+# 2020 - 2022 Jan Provaznik (jan@provaznik.pro)
+#
+# Lists virtual functions (SR-IOV) of network devices and the IOMMU isolation
+# groups they belong to.
+
+import re
+import os
+import os.path
+import subprocess
+
+# We want to determine whether a device has virtual functions, what these are
+# and what IOMMU group they are a part of.
+
+def findnetname (base):
+  netpath = os.path.join(base, 'net')
+  if not os.path.exists(netpath):
+    return '-'
+
+  netlist = os.listdir(netpath)
+  if not netlist:
+    return '-'
+
+  return netlist[0]
+
+def virtfuns (base):
+  for node in os.scandir(base):
+    if not re.match('virtfn', node.name):
+      continue
+
+    # (1) determine network name
+    netname = findnetname(node.path)
+
+    # (2) determine pcie name
+    devlink = os.path.join(node.path)
+    devpath = os.path.realpath(devlink)
+    devname = os.path.basename(devpath)
+
+    # (3) determine iommu group name
+    mmulink = os.path.join(node.path, 'iommu_group')
+    mmupath = os.path.realpath(mmulink)
+    mmuname = os.path.basename(mmupath)
+
+    yield (netname, devname, mmuname)
+
+def devices (base = '/sys/class/net'):
+  for node in os.scandir(base):
+    if not node.is_dir():
+      continue
+
+    devpath = os.path.join(node.path, 'device')
+    if not os.path.exists(devpath):
+      continue
+
+    devfuns = list(virtfuns(devpath))
+    if not devfuns:
+      continue
+
+    devfuns = sorted(devfuns)
+    devfuns = list(devfuns)
+
+    netname = node.name
+
+    devpath = os.path.realpath(devpath)
+    devname = os.path.basename(devpath)
+
+    yield (netname, devname, devfuns)
+
+# devices
+#
+# builds a list of device tuples, 
+# each device tuple comprises (name, pcie bus identifier, list of virtual function tuples)
+# each virtual function tuple comprises (name, pcie bus identifier, iommu group)
+
+# =)
+
+for (netname, pciname, funlist) in sorted(devices()):
+  print('device', pciname, 'known as', netname, 'with virtual functions')
+  for (virname, pciname, mmuname) in funlist:
+    print('->', 'device', pciname, 'in iommu group', mmuname, 'known as', virname)
+  print()
+  
+  lines = subprocess.check_output([ '/bin/ip', 'link', 'show', netname ])
+  lines = lines.decode('utf-8').split('\n')
+
+  for line in lines:
+    if re.search('vf', line):
+      print(': ', line.strip())
+
+  print()
+
