@@ -5,7 +5,7 @@
 # Rebinds a PCIe device from its original driver to vfio-pci. Comes handy in
 # QEMU (KVM) initialization scripts.
 
-function rebind {
+function vfio-rebind {
   echo $1 \
     > /sys/bus/pci/devices/$1/driver/unbind
   echo 'vfio-pci' \
@@ -16,5 +16,13 @@ function rebind {
 
 # For example,
 #
-# rebind 0000:81:0e.0
-# rebind 0000:81:0e.1
+# vfio-rebind 0000:81:0e.0
+# vfio-rebind 0000:81:0e.1
+
+# If called directly,
+# pass the arguments along.
+
+(return 0 2>/dev/null) || {
+  vfio-rebind "${@}"
+}
+
